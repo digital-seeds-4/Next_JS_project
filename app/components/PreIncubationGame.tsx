@@ -420,6 +420,17 @@ const PreIncubationGame: React.FC = () => {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [characterExpression, setCharacterExpression] = useState<'neutral' | 'happy' | 'excited' | 'thinking' | 'celebrate'>('neutral');
 
+  // Fonction pour obtenir couleur et message selon le pourcentage
+  const getScoreColor = (score: number) => {
+    if (score <= 30) {
+      return { color: '#dc3545', message: '🔴 À insuffisance de ' };
+    } else if (score <= 70) {
+      return { color: '#ffc107', message: '🟠 À améliorer' };
+    } else {
+      return { color: '#28a745', message: '🟢 Excellent!' };
+    }
+  };
+
   const currentPhase = GAME_PHASES[gameState.currentPhase - 1];
   const currentQuestion = currentPhase.questions[gameState.currentQuestion];
   const phaseProgress = Math.round(
@@ -576,12 +587,12 @@ const PreIncubationGame: React.FC = () => {
       <div style="margin-bottom: 30px;">
         <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">🎯 Score de maturité</h2>
         <div style="display: flex; align-items: center; gap: 20px;">
-          <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold;">
+          <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, ${getScoreColor(gameState.projectData.maturityScore).color} 0%, ${getScoreColor(gameState.projectData.maturityScore).color} 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold;">
             ${gameState.projectData.maturityScore}%
           </div>
           <div>
             <p style="margin: 0 0 8px; color: #333;"><strong>Score total:</strong> ${gameState.projectData.totalScore} / ${gameState.projectData.maxScore}</p>
-            <p style="margin: 8px 0; color: #555; font-size: 14px;">Niveau: <strong>${gameState.projectData.maturityScore >= 80 ? 'Excellent' : gameState.projectData.maturityScore >= 60 ? 'Bon' : gameState.projectData.maturityScore >= 40 ? 'Acceptable' : 'À améliorer'}</strong></p>
+            <p style="margin: 8px 0; color: #555; font-size: 14px;">Statut: <strong>${getScoreColor(gameState.projectData.maturityScore).message}</strong></p>
           </div>
         </div>
       </div>
@@ -834,18 +845,12 @@ const PreIncubationGame: React.FC = () => {
             <p className="completion-subtitle">Vous avez complété le jeu de préincubation</p>
 
             <div className="maturity-score">
-              <div className="score-circle">
+              <div className="score-circle" style={{ background: `linear-gradient(135deg, ${getScoreColor(maturityScore!).color} 0%, ${getScoreColor(maturityScore!).color} 100%)` }}>
                 <span className="score-value">{maturityScore}</span>
                 <span className="score-label">%</span>
               </div>
               <p className="score-message">
-                {maturityScore >= 80
-                  ? '🌟 Excellent! Votre projet est très mature.'
-                  : maturityScore >= 60
-                  ? '✨ Bon travail! Quelques points à affiner.'
-                  : maturityScore >= 40
-                  ? '⚠️ Des efforts à faire pour améliorer la maturité.'
-                  : '📚 À approfondir. Continuez vos validations.'}
+                {getScoreColor(maturityScore!).message}
               </p>
             </div>
 

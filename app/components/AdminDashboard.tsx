@@ -25,6 +25,17 @@ const AdminDashboard: React.FC = () => {
   const [evaluationNotes, setEvaluationNotes] = useState('');
   const [evaluationRating, setEvaluationRating] = useState<'approved' | 'rejected'>('approved');
 
+  // Fonction pour obtenir couleur et message selon le pourcentage
+  const getScoreColor = (score: number) => {
+    if (score <= 30) {
+      return { color: '#dc3545', message: '🔴 Projet Fragile' };
+    } else if (score <= 70) {
+      return { color: '#ffc107', message: '🟠 À améliorer' };
+    } else {
+      return { color: '#28a745', message: '🟢 Prêt pour financement ' };
+    }
+  };
+
   useEffect(() => {
     loadProjects();
   }, []);
@@ -183,7 +194,9 @@ const AdminDashboard: React.FC = () => {
                       <p className="project-author">👤 {project.userName}</p>
                     </div>
                     <div className="project-score">
-                      <span className="score-circle">{project.maturityScore}%</span>
+                      <span className="score-circle" style={{ background: `linear-gradient(135deg, ${getScoreColor(project.maturityScore).color} 0%, ${getScoreColor(project.maturityScore).color} 100%)` }}>
+                        {project.maturityScore}%
+                      </span>
                     </div>
                   </div>
 
@@ -224,15 +237,11 @@ const AdminDashboard: React.FC = () => {
               <h3>{selectedProject.projectName}</h3>
               <p className="author-info">Entrepreneur: {selectedProject.userName}</p>
               <div className="score-display">
-                <div className="score-circle-large">{selectedProject.maturityScore}%</div>
+                <div className="score-circle-large" style={{ background: `linear-gradient(135deg, ${getScoreColor(selectedProject.maturityScore).color} 0%, ${getScoreColor(selectedProject.maturityScore).color} 100%)` }}>
+                  {selectedProject.maturityScore}%
+                </div>
                 <div className="score-interpretation">
-                  {selectedProject.maturityScore >= 80
-                    ? '🌟 Excellent'
-                    : selectedProject.maturityScore >= 60
-                    ? '✨ Bon'
-                    : selectedProject.maturityScore >= 40
-                    ? '⚠️ Acceptable'
-                    : '📚 À développer'}
+                  {getScoreColor(selectedProject.maturityScore).message}
                 </div>
               </div>
             </div>
