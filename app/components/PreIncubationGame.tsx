@@ -423,9 +423,9 @@ const PreIncubationGame: React.FC = () => {
   // Fonction pour obtenir couleur et message selon le pourcentage
   const getScoreColor = (score: number) => {
     if (score <= 30) {
-      return { color: '#dc3545', message: '🔴 À insuffisance de ' };
+      return { color: '#dc3545', message: '🔴 À redémarrer' };
     } else if (score <= 70) {
-      return { color: '#ffc107', message: '🟠 À améliorer' };
+      return { color: '#f19120', message: '🟠 À améliorer' };
     } else {
       return { color: '#28a745', message: '🟢 Excellent!' };
     }
