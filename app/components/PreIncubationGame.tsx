@@ -34,6 +34,8 @@ interface GameState {
   projectData: Record<string, any>;
   isComplete: boolean;
   characterExpression: 'neutral' | 'happy' | 'excited' | 'thinking' | 'celebrate';
+  submittedAt?: string;
+  evaluationStatus?: 'pending' | 'evaluated' | 'approved' | 'rejected';
 }
 
 interface Particle {
@@ -500,26 +502,190 @@ const PreIncubationGame: React.FC = () => {
     const maxScore = GAME_PHASES.length * 200; // Each phase has 2 questions max 100 each
     const maturityScore = Math.round((totalScore / maxScore) * 100);
 
-    return {
+    const projectData = {
       projectName,
       userName,
       createdAt: new Date().toLocaleDateString('fr-FR'),
+      submittedAt: new Date().toISOString(),
       maturityScore,
       phaseScores: scores,
       totalScore,
       maxScore,
+      evaluationStatus: 'pending',
+      evaluationNotes: '',
+      evaluatedBy: null,
+      evaluatedAt: null,
+      milestones: generateMilestones(maturityScore),
+      recommendations: generateRecommendations(scores),
+      projectMetadata: {
+        version: '1.0',
+        format: 'application/json',
+        exportedAt: new Date().toISOString(),
+      }
     };
+
+    return projectData;
   };
 
-  const downloadProject = () => {
-    const data = JSON.stringify(gameState.projectData, null, 2);
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(data));
-    element.setAttribute('download', `projet_${projectName.replace(/\s+/g, '_')}.json`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  const generateMilestones = (score: number) => {
+    const milestones = [];
+    if (score >= 60) milestones.push('✓ Concept validé');
+    if (score >= 70) milestones.push('✓ Marché identifié');
+    if (score >= 80) milestones.push('✓ Prototype possible');
+    if (score >= 90) milestones.push('✓ Prêt pour financement');
+    return milestones.length > 0 ? milestones : ['📌 À développer'];
+  };
+
+  const generateRecommendations = (scores: Record<number, number>) => {
+    const recommendations = [];
+    
+    if ((scores[1] || 0) < 150) recommendations.push('Clarifier davantage votre idée et votre cible');
+    if ((scores[2] || 0) < 150) recommendations.push('Valider votre marché avec des utilisateurs réels');
+    if ((scores[3] || 0) < 150) recommendations.push('Affiner votre modèle économique');
+    if ((scores[4] || 0) < 150) recommendations.push('Développer une proposition de valeur plus forte');
+    if ((scores[5] || 0) < 150) recommendations.push('Créer et tester un prototype rapidement');
+    if ((scores[6] || 0) < 150) recommendations.push('Préparer un pitch plus convaincant');
+
+    return recommendations.length > 0 ? recommendations : ['Bravo! Continuer sur cette lancée.'];
+  };
+
+  const downloadProject = async () => {
+    const { jsPDF } = await import('jspdf');
+    const html2canvas = (await import('html2canvas')).default;
+
+    // Créer un élément temporaire avec le contenu formaté
+    const pdfContent = document.createElement('div');
+    pdfContent.style.padding = '40px';
+    pdfContent.style.width = '800px';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.position = 'absolute';
+    pdfContent.style.left = '-9999px';
+    pdfContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="color: #667eea; margin: 0 0 10px; font-size: 28px;">📊 DOSSIER PROJET</h1>
+        <p style="color: #999; font-size: 14px; margin: 0;">${new Date().toLocaleDateString('fr-FR')}</p>
+      </div>
+
+      <div style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+        <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">📋 Informations du projet</h2>
+        <p style="margin: 8px 0; color: #555;"><strong>Nom du projet:</strong> ${gameState.projectData.projectName}</p>
+        <p style="margin: 8px 0; color: #555;"><strong>Entrepreneur:</strong> ${gameState.projectData.userName}</p>
+        <p style="margin: 8px 0; color: #555;"><strong>Date créée:</strong> ${new Date(gameState.projectData.createdAt).toLocaleDateString('fr-FR')}</p>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">🎯 Score de maturité</h2>
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold;">
+            ${gameState.projectData.maturityScore}%
+          </div>
+          <div>
+            <p style="margin: 0 0 8px; color: #333;"><strong>Score total:</strong> ${gameState.projectData.totalScore} / ${gameState.projectData.maxScore}</p>
+            <p style="margin: 8px 0; color: #555; font-size: 14px;">Niveau: <strong>${gameState.projectData.maturityScore >= 80 ? 'Excellent' : gameState.projectData.maturityScore >= 60 ? 'Bon' : gameState.projectData.maturityScore >= 40 ? 'Acceptable' : 'À améliorer'}</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">📈 Scores par phase</h2>
+        ${Object.entries(gameState.projectData.phaseScores || {}).map((entry: any) => {
+          const [phase, score] = entry;
+          const maxScore = 300;
+          const percentage = (score / maxScore) * 100;
+          return `
+            <div style="margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: #333;">${phase}</span>
+                <span style="color: #666;">${score} / ${maxScore}</span>
+              </div>
+              <div style="height: 12px; background: #e0e0e0; border-radius: 6px; overflow: hidden;">
+                <div style="height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: ${percentage}%;"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">⭐ Jalons atteints</h2>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${gameState.projectData.milestones?.map((m: string) => `
+            <li style="padding: 8px 0; color: #555; border-bottom: 1px solid #eee;">✓ ${m}</li>
+          `).join('') || '<li style="color: #999;">Aucun jalon atteint pour le moment</li>'}
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #333; font-size: 18px; margin: 0 0 15px;">💡 Recommandations</h2>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          ${gameState.projectData.recommendations?.map((r: string) => `
+            <li style="padding: 8px 0; color: #555; border-bottom: 1px solid #eee;">→ ${r}</li>
+          `).join('') || '<li style="color: #999;">Aucune recommandation</li>'}
+        </ul>
+      </div>
+
+      <div style="margin-top: 50px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; color: #999; font-size: 12px;">
+        <p style="margin: 0;">Généré par Digital Seeds - Plateforme de pré-incubation</p>
+      </div>
+    `;
+
+    document.body.appendChild(pdfContent);
+
+    try {
+      const canvas = await html2canvas(pdfContent, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`projet_${projectName.replace(/\s+/g, '_')}.pdf`);
+
+      createConfetti();
+    } finally {
+      document.body.removeChild(pdfContent);
+    }
+
+    // Sauvegarder en localStorage aussi
+    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+    projects.push({
+      ...gameState.projectData,
+      id: `${projectName}_${Date.now()}`,
+    });
+    localStorage.setItem('projects', JSON.stringify(projects));
+  };
+
+  const submitProject = () => {
+    setGameState({
+      ...gameState,
+      projectData: {
+        ...gameState.projectData,
+        submittedAt: new Date().toISOString(),
+        evaluationStatus: 'pending',
+      },
+    });
+
+    // Sauvegarder le projet soumis
+    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+    const projectIndex = projects.findIndex((p: any) => p.projectName === projectName);
+    
+    if (projectIndex >= 0) {
+      projects[projectIndex] = {
+        ...gameState.projectData,
+        submittedAt: new Date().toISOString(),
+        evaluationStatus: 'pending',
+      };
+    } else {
+      projects.push({
+        ...gameState.projectData,
+        id: `${projectName}_${Date.now()}`,
+        submittedAt: new Date().toISOString(),
+        evaluationStatus: 'pending',
+      });
+    }
+    localStorage.setItem('projects', JSON.stringify(projects));
+
+    createConfetti();
     createConfetti();
   };
 
@@ -726,6 +892,9 @@ const PreIncubationGame: React.FC = () => {
               <button onClick={downloadProject} className="btn btn-primary">
                 📥 Télécharger le dossier projet
               </button>
+              <button onClick={submitProject} className="btn btn-success">
+                📤 Soumettre l'évaluation
+              </button>
               <button
                 onClick={() => {
                   setGameState({
@@ -747,6 +916,15 @@ const PreIncubationGame: React.FC = () => {
                 🔄 Rejouer
               </button>
             </div>
+
+            {gameState.projectData.evaluationStatus === 'pending' && (
+              <div className="submission-status">
+                <div className="status-badge pending">
+                  ⏳ En attente d'évaluation
+                </div>
+                <p>Votre projet a été soumis pour évaluation par un mentor ou administrateur.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
