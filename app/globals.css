@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Couleurs ISM - Palette officielle basée sur le site groupeism.sn */
+  --ism-primary: #1E40AF; /* Bleu principal */
+  --ism-secondary: #F97316; /* Orange */
+  --ism-dark: #0F172A; /* Bleu foncé */
+  --ism-light: #F8FAFC; /* Gris clair */
+  --ism-accent: #F59E0B; /* Or/Ambre */
+  --ism-text: #1F2937; /* Texte principal */
+  --ism-text-light: #6B7280; /* Texte secondaire */
 }
 
 @theme inline {
@@ -10,17 +19,25 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  
+  /* Couleurs ISM pour Tailwind */
+  --color-ism-primary: var(--ism-primary);
+  --color-ism-secondary: var(--ism-secondary);
+  --color-ism-dark: var(--ism-dark);
+  --color-ism-light: var(--ism-light);
+  --color-ism-accent: var(--ism-accent);
+  --color-ism-text: var(--ism-text);
+  --color-ism-text-light: var(--ism-text-light);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
